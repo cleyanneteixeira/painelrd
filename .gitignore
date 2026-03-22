@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+instance/
+tmp/
+*.log
+*.zip
+*.db
+.htaccess
+painel_merged/
+painel_final/

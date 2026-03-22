@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% block title %}Suporte · RDCria{% endblock %}
+{% block content %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card app-card border-0 shadow-sm text-center p-3">
+      <div class="eyebrow">Total</div>
+      <strong class="fs-4">{{ pagination.total }}</strong>
+      <small class="text-muted">chamados</small>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card app-card border-0 shadow-sm text-center p-3">
+      <div class="eyebrow">Em andamento</div>
+      <strong class="fs-4 text-primary">{{ support_entries | selectattr('service_status', 'equalto', 'em andamento') | list | length }}</strong>
+      <small class="text-muted">em execucao</small>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card app-card border-0 shadow-sm text-center p-3">
+      <div class="eyebrow">Abertos</div>
+      <strong class="fs-4 text-warning">{{ support_entries | selectattr('service_status', 'equalto', 'aberto') | list | length }}</strong>
+      <small class="text-muted">aguardando</small>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card app-card border-0 shadow-sm text-center p-3">
+      <div class="eyebrow">Urgentes</div>
+      <strong class="fs-4 text-danger">{{ support_entries | selectattr('priority', 'equalto', 'urgente') | list | length }}</strong>
+      <small class="text-muted">alta prioridade</small>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4" id="novo-atendimento">
+  <div class="col-lg-6">
+    <div class="card app-card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-head mb-3">
+          <div>
+            <div class="eyebrow">novo atendimento</div>
+            <h2 class="h5 mb-1">Criar suporte</h2>
+          </div>
+        </div>
+        <form method="post" class="row g-3">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <div class="col-12">
+            <label class="form-label">Titulo <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="title" required placeholder="Ex.: Cliente sem acesso">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Contato</label>
+            <input type="text" class="form-control" name="contact_name" placeholder="Nome do contato">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">WhatsApp</label>
+            <input type="text" class="form-control" name="contact_phone" placeholder="Ex.: 11999999999">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Plataforma</label>
+            <select class="form-select" name="platform">
+              <option value="">Selecionar</option>
+              {% for p in support_platforms %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Prioridade</label>
+            <select class="form-select" name="priority">
+              {% for p in support_priorities %}<option value="{{ p }}" {{ 'selected' if p == 'normal' }}>{{ p | capitalize }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Tipo do problema</label>
+            <select class="form-select" name="issue_type">
+              <option value="">Selecionar</option>
+              {% for i in support_issues %}<option value="{{ i }}">{{ i | capitalize }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Dispositivo</label>
+            <select class="form-select" name="device_type">
+              <option value="">Selecionar</option>
+              {% for d in support_devices %}<option value="{{ d }}">{{ d | capitalize }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Descricao</label>
+            <textarea class="form-control" name="description" rows="3" placeholder="Resumo do atendimento"></textarea>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary">Criar atendimento</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card app-card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-head mb-3">
+          <div>
+            <div class="eyebrow">filtros</div>
+            <h2 class="h5 mb-1">Buscar atendimentos</h2>
+          </div>
+        </div>
+        <form method="get" class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Buscar</label>
+            <input type="search" class="form-control" name="q" value="{{ search }}" placeholder="Cliente, titulo ou descricao">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Status</label>
+            <select class="form-select" name="status">
+              <option value="">Todos os status</option>
+              {% for s in support_statuses %}<option value="{{ s }}" {{ 'selected' if status_filter == s }}>{{ s | capitalize }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-12 d-flex gap-2 flex-wrap">
+            <button class="btn btn-secondary" type="submit">Aplicar filtros</button>
+            <a href="{{ url_for('main.support_center') }}" class="btn btn-outline-secondary">Limpar</a>
+            <a href="#novo-atendimento" class="btn btn-primary ms-auto">+ Novo</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card app-card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="section-head mb-3">
+      <div>
+        <div class="eyebrow">lista de suportes</div>
+        <h2 class="h5 mb-0">{{ pagination.total }} atendimento(s)</h2>
+      </div>
+    </div>
+
+    <div class="d-flex flex-column gap-3">
+      {% for entry in support_entries %}
+      <div class="card border-0 bg-light bg-opacity-10 p-3">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+          <div class="flex-grow-1">
+            <div class="d-flex flex-wrap gap-2 mb-2">
+              <span class="badge rounded-pill text-bg-{{ entry.status_badge }}">{{ entry.service_status }}</span>
+              <span class="badge rounded-pill text-bg-{{ 'danger' if entry.priority == 'urgente' else 'secondary' }}">{{ entry.priority }}</span>
+              {% if entry.platform %}<span class="badge rounded-pill text-bg-dark">{{ entry.platform }}</span>{% endif %}
+              {% if entry.assigned_to %}<span class="badge rounded-pill text-bg-info">Resp: {{ entry.assigned_to.name }}</span>{% endif %}
+              {% if entry.forwarded_to %}<span class="badge rounded-pill text-bg-warning text-dark">Encam: {{ entry.forwarded_to }}</span>{% endif %}
+            </div>
+            <strong>{{ entry.title }}</strong>
+            <p class="text-muted small mb-1">{{ entry.display_name }}{% if entry.contact_phone %} · {{ entry.contact_phone }}{% endif %}</p>
+            <small class="text-muted">
+              {{ entry.attended_at|datetime_br }}
+              {% if entry.started_at %} · Iniciado: {{ entry.started_at|datetime_br }}{% endif %}
+              {% if entry.finished_at %} · Finalizado: {{ entry.finished_at|datetime_br }}{% endif %}
+              {% if entry.messages %} · {{ entry.messages|length }} mensagem(ns){% endif %}
+            </small>
+
+            <!-- Barra de progresso -->
+            <div class="progress mt-2" style="height:4px">
+              <div class="progress-bar" role="progressbar" style="width:{{ entry.progress_percent }}%"></div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 flex-wrap align-items-start">
+            <a href="{{ url_for('main.support_edit', attendance_id=entry.id) }}" class="btn btn-sm btn-primary">Editar</a>
+            {% if entry.contact_phone %}
+            <a href="https://wa.me/{{ entry.contact_phone | replace(' ','') | replace('-','') | replace('(','') | replace(')','') }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success">WhatsApp</a>
+            {% endif %}
+            {% if entry.client %}
+            <a href="{{ url_for('main.client_detail', client_id=entry.client.id) }}" class="btn btn-sm btn-outline-secondary">Cliente</a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Ações de andamento -->
+        <div class="mt-3 pt-3 border-top d-flex flex-wrap gap-2 align-items-end">
+          <form method="post" action="{{ url_for('main.support_action', attendance_id=entry.id) }}" class="d-flex gap-2 align-items-end flex-wrap">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="iniciado">
+            <button type="submit" class="btn btn-sm btn-outline-primary">▶ Iniciar</button>
+          </form>
+
+          <form method="post" action="{{ url_for('main.support_action', attendance_id=entry.id) }}" class="d-flex gap-2 align-items-end flex-wrap">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="finalizado">
+            <button type="submit" class="btn btn-sm btn-outline-success">✓ Finalizar</button>
+          </form>
+
+          <form method="post" action="{{ url_for('main.support_action', attendance_id=entry.id) }}" class="d-flex gap-2 align-items-end flex-wrap">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="encaminhado">
+            <select name="forwarded_to" class="form-select form-select-sm" style="width:170px">
+              <option value="">Encaminhar para...</option>
+              {% for emp in employees %}
+              <option value="{{ emp.name }}">{{ emp.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-warning">→ Encaminhar</button>
+          </form>
+
+          <form method="post" action="{{ url_for('main.support_send_message', attendance_id=entry.id) }}" class="d-flex gap-2 align-items-end flex-grow-1 flex-wrap">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="body" class="form-control form-control-sm flex-grow-1" placeholder="Mensagem interna...">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">💬 Enviar</button>
+          </form>
+
+          {% if current_user.is_admin %}
+          <form method="post" action="{{ url_for('main.support_delete', attendance_id=entry.id) }}" class="d-inline" onsubmit="return confirm('Remover este atendimento?')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+          </form>
+          {% endif %}
+        </div>
+
+        <!-- Mensagens internas do suporte -->
+        {% if entry.messages %}
+        <div class="mt-2 pt-2 border-top">
+          <small class="text-muted fw-bold">Mensagens internas:</small>
+          {% for msg in entry.messages[-3:] %}
+          <div class="d-flex gap-2 mt-1">
+            <small class="text-muted">{{ msg.author.name }} · {{ msg.created_at|datetime_br }}</small>
+            <small>{{ msg.body }}</small>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="text-muted text-center py-4">Nenhum atendimento encontrado.</div>
+      {% endfor %}
+    </div>
+
+    {% if pagination.pages > 1 %}
+    <div class="mt-4">{% include 'partials/pagination.html' %}</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
