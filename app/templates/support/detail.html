@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% block title %}Suporte #{{ attendance.id }} · RDCria{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('main.support_center') }}" class="btn btn-outline-secondary btn-sm">← Voltar</a>
+  <h1 class="h4 mb-0">Suporte #{{ attendance.id }} — {{ attendance.title }}</h1>
+</div>
+
+<div class="row g-4">
+
+  <!-- Coluna principal -->
+  <div class="col-lg-8">
+
+    <!-- Info do atendimento -->
+    <div class="card app-card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <div class="section-head mb-3">
+          <div>
+            <div class="eyebrow">Atendimento</div>
+            <h2 class="h5 mb-0">Detalhes</h2>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <span class="badge rounded-pill text-bg-{{ attendance.status_badge }}" style="opacity:1;filter:saturate(1.4)">{{ attendance.service_status }}</span>
+            <span class="badge rounded-pill" style="background:{{ '#dc3545' if attendance.priority == 'urgente' else '#6c757d' }};color:#fff;font-weight:600">{{ attendance.priority }}</span>
+            {% if attendance.platform %}<span class="badge rounded-pill" style="background:#212529;color:#fff;font-weight:600">{{ attendance.platform }}</span>{% endif %}
+          </div>
+        </div>
+
+        <!-- Barra de progresso -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Andamento</span><span>{{ attendance.progress_percent }}%</span>
+          </div>
+          <div class="progress" style="height:6px">
+            <div class="progress-bar" style="width:{{ attendance.progress_percent }}%"></div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <small class="text-muted d-block">Contato</small>
+            <strong>{{ attendance.display_name }}</strong>
+            {% if attendance.contact_phone %}
+            <div><a href="https://wa.me/{{ attendance.contact_phone }}" target="_blank" class="text-success small">{{ attendance.contact_phone }}</a></div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <small class="text-muted d-block">Responsável</small>
+            <strong>{{ attendance.assigned_to.name if attendance.assigned_to else 'Não definido' }}</strong>
+          </div>
+          <div class="col-md-6">
+            <small class="text-muted d-block">Abertura</small>
+            <strong>{{ attendance.attended_at|datetime_br }}</strong>
+          </div>
+          <div class="col-md-6">
+            <small class="text-muted d-block">Problema</small>
+            <strong>{{ attendance.issue_type or 'Não informado' }}</strong>
+          </div>
+          {% if attendance.due_date_info %}
+          <div class="col-md-6">
+            <small class="text-muted d-block">Vencimento</small>
+            <strong>{{ attendance.due_date_info }}</strong>
+          </div>
+          {% endif %}
+          {% if attendance.forwarded_to %}
+          <div class="col-md-6">
+            <small class="text-muted d-block">Encaminhado para</small>
+            <strong class="text-warning">{{ attendance.forwarded_to }}</strong>
+          </div>
+          {% endif %}
+          {% if attendance.started_at %}
+          <div class="col-md-6">
+            <small class="text-muted d-block">Iniciado em</small>
+            <strong>{{ attendance.started_at|datetime_br }}</strong>
+          </div>
+          {% endif %}
+          {% if attendance.finished_at %}
+          <div class="col-md-6">
+            <small class="text-muted d-block">Finalizado em</small>
+            <strong class="text-success">{{ attendance.finished_at|datetime_br }}</strong>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if attendance.description %}
+        <div class="mt-3 pt-3 border-top">
+          <small class="text-muted d-block mb-1">Descrição</small>
+          <p class="mb-0">{{ attendance.description }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Chat interno -->
+    <div class="card app-card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <div class="section-head mb-3">
+          <div>
+            <div class="eyebrow">Chat</div>
+            <h2 class="h5 mb-0">Mensagens internas</h2>
+          </div>
+          <span class="badge bg-secondary">{{ messages|length }}</span>
+        </div>
+
+        <div class="d-flex flex-column gap-2 mb-3" style="max-height:360px;overflow-y:auto">
+          {% for msg in messages %}
+          <div class="d-flex {{ 'justify-content-end' if msg.author_user_id == current_user.id else 'justify-content-start' }}">
+            <div class="p-2 rounded-3 {{ 'bg-primary text-white' if msg.author_user_id == current_user.id else 'bg-light' }}" style="max-width:75%">
+              <div class="small fw-bold mb-1">{{ msg.author.name }}</div>
+              <div>{{ msg.body }}</div>
+              <div class="small opacity-75 mt-1">{{ msg.created_at|datetime_br }}</div>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-muted text-center py-3 small">Nenhuma mensagem ainda.</div>
+          {% endfor %}
+        </div>
+
+        <form method="post" action="{{ url_for('main.support_send_message', attendance_id=attendance.id) }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <div class="input-group">
+            <input type="text" class="form-control" name="body" placeholder="Escreva uma mensagem interna...">
+            <button type="submit" class="btn btn-primary">Enviar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Coluna lateral -->
+  <div class="col-lg-4">
+
+    <!-- Info do cliente -->
+    {% if attendance.client %}
+    <div class="card app-card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <div class="eyebrow mb-2">Cliente</div>
+        <h3 class="h6 mb-3">{{ attendance.client.name }}</h3>
+        <div class="d-flex flex-column gap-2 small">
+          <div><span class="text-muted">Serviço:</span> {{ attendance.client.service_name }}</div>
+          <div><span class="text-muted">WhatsApp:</span>
+            <a href="https://wa.me/{{ attendance.client.whatsapp }}" target="_blank" class="text-success">{{ attendance.client.whatsapp }}</a>
+          </div>
+          <div><span class="text-muted">Vencimento:</span> {{ attendance.client.due_date|date_br }}</div>
+          <div><span class="text-muted">Status:</span>
+            <span class="badge rounded-pill text-bg-{{ 'success' if attendance.client.status == 'ativo' else 'secondary' }}">{{ attendance.client.status }}</span>
+          </div>
+          {% if attendance.client.monthly_fee %}
+          <div><span class="text-muted">Mensalidade:</span> {{ attendance.client.monthly_fee|money }}</div>
+          {% endif %}
+        </div>
+        <div class="mt-3 d-flex gap-2">
+          <a href="{{ url_for('main.client_detail', client_id=attendance.client.id) }}" class="btn btn-sm btn-outline-primary">Abrir cliente</a>
+          <a href="https://wa.me/{{ attendance.client.whatsapp }}" target="_blank" class="btn btn-sm btn-outline-success">WhatsApp</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Ações rápidas -->
+    <div class="card app-card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <div class="eyebrow mb-3">Ações rápidas</div>
+        <div class="d-flex flex-column gap-2">
+
+          <form method="post" action="{{ url_for('main.support_action', attendance_id=attendance.id) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="iniciado">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn btn-outline-primary w-100">▶ Marcar como iniciado</button>
+          </form>
+
+          <form method="post" action="{{ url_for('main.support_action', attendance_id=attendance.id) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="finalizado">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn btn-outline-success w-100">✓ Finalizar atendimento</button>
+          </form>
+
+          <form method="post" action="{{ url_for('main.support_action', attendance_id=attendance.id) }}" class="d-flex gap-2">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="encaminhado">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <select name="forwarded_to" class="form-select form-select-sm">
+              <option value="">Encaminhar para...</option>
+              {% for emp in employees %}
+              <option value="{{ emp.name }}" {{ 'selected' if attendance.forwarded_to == emp.name }}>{{ emp.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-outline-warning btn-sm">→</button>
+          </form>
+
+          <a href="{{ url_for('main.support_edit', attendance_id=attendance.id) }}" class="btn btn-outline-secondary w-100">✎ Editar atendimento</a>
+
+          {% if current_user.is_admin %}
+          <form method="post" action="{{ url_for('main.support_delete', attendance_id=attendance.id) }}" onsubmit="return confirm('Remover este atendimento?')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-danger w-100">Remover</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

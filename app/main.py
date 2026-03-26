@@ -333,6 +333,23 @@ def attendance_create(client_id: int):
     return redirect(url_for("main.support_center"))
 
 
+
+
+@bp.route("/suporte/<int:attendance_id>")
+@login_required
+def support_detail(attendance_id: int):
+    attendance = Attendance.query.get_or_404(attendance_id)
+    employees = User.query.filter_by(active=True).order_by(User.name.asc()).all()
+    messages = attendance.messages
+    return render_template(
+        "support/detail.html",
+        attendance=attendance,
+        employees=employees,
+        messages=messages,
+        support_statuses=SUPPORT_STATUSES,
+        support_priorities=SUPPORT_PRIORITIES,
+    )
+
 @bp.route("/suporte/<int:attendance_id>/editar", methods=["GET", "POST"])
 @login_required
 def support_edit(attendance_id: int):
@@ -770,7 +787,7 @@ def update_support_entry(attendance: Attendance) -> bool:
     contact_phone = normalize_phone(request.form.get("contact_phone", ""))
     platform = request.form.get("platform", "").strip() or None
     issue_type = request.form.get("issue_type", "").strip() or None
-    device_type = request.form.get("device_type", "").strip() or None
+    due_date_info = request.form.get("due_date_info", "").strip() or None
     service_status = request.form.get("service_status", "aberto").strip().lower() or "aberto"
     priority = request.form.get("priority", "normal").strip().lower() or "normal"
     title = request.form.get("title", "").strip()
@@ -787,7 +804,7 @@ def update_support_entry(attendance: Attendance) -> bool:
     attendance.contact_phone = contact_phone or None
     attendance.platform = platform if platform in SUPPORT_PLATFORMS else (platform or None)
     attendance.issue_type = issue_type if issue_type in SUPPORT_ISSUES else (issue_type or None)
-    attendance.device_type = device_type if device_type in SUPPORT_DEVICES else (device_type or None)
+    attendance.due_date_info = due_date_info
     attendance.service_status = service_status if service_status in SUPPORT_STATUSES else "aberto"
     attendance.priority = priority if priority in SUPPORT_PRIORITIES else "normal"
     attendance.title = title
