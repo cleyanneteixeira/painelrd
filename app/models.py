@@ -83,6 +83,7 @@ class Attendance(TimestampMixin, db.Model):
     forwarded_to = db.Column(db.String(160), nullable=True)
     started_at = db.Column(db.DateTime, nullable=True)
     finished_at = db.Column(db.DateTime, nullable=True)
+    due_date_info = db.Column(db.String(100), nullable=True)
 
     client = db.relationship("Client", back_populates="attendances")
     user = db.relationship("User", back_populates="attendances", foreign_keys=[user_id])

@@ -39,11 +39,8 @@
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label">Dispositivo</label>
-            <select class="form-select" name="device_type">
-              <option value="">Selecione</option>
-              {% for item in support_devices %}<option value="{{ item }}" {% if attendance and attendance.device_type == item %}selected{% endif %}>{{ item|title }}</option>{% endfor %}
-            </select>
+            <label class="form-label">Vencimento</label>
+            <input type="text" class="form-control" name="due_date_info" value="{{ attendance.due_date_info or '' }}" placeholder="Ex.: 25/03/2026 ou mensal">
           </div>
           <div class="col-md-4">
             <label class="form-label">Status</label>
