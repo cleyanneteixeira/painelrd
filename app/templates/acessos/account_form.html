@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Nova Conta · RDCria{% endblock %}
+{% block content %}
+
+<div class="page-header mb-4">
+  <div>
+    <div class="eyebrow mb-2">Acessos</div>
+    <h1 class="h3 mb-1">Nova conta</h1>
+  </div>
+  <a href="{{ url_for('main.acessos_list') }}" class="btn btn-outline-secondary">← Voltar</a>
+</div>
+
+<div class="card app-card border-0 shadow-sm" style="max-width:560px">
+  <div class="card-body">
+    <form method="post" class="row g-3">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="col-12">
+        <label class="form-label">Plataforma <span class="text-danger">*</span></label>
+        <select class="form-select" name="platform_id" required>
+          <option value="">Selecionar plataforma...</option>
+          {% for p in platforms %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Login (e-mail ou usuário) <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="login" required placeholder="Ex.: conta@gmail.com">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Senha <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="password" required placeholder="Senha da conta">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Número de telas</label>
+        <input type="number" class="form-control" name="max_slots" value="1" min="1" max="10">
+        <div class="form-text">Quantas telas/acessos simultâneos essa conta suporta.</div>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" name="notes" rows="2" placeholder="Informações adicionais"></textarea>
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-primary">Cadastrar conta</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

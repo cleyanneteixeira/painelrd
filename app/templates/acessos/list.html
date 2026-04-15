@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block title %}Acessos · RDCria{% endblock %}
+{% block content %}
+
+<div class="page-header mb-4">
+  <div>
+    <div class="eyebrow mb-2">Acessos</div>
+    <h1 class="h3 mb-1">Controle de plataformas e telas</h1>
+    <p class="section-subtitle mb-0">Gerencie contas e vincule telas aos clientes.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('main.platform_create') }}" class="btn btn-outline-primary">+ Plataforma</a>
+    <a href="{{ url_for('main.account_create') }}" class="btn btn-primary">+ Conta</a>
+  </div>
+</div>
+
+<!-- Resumo geral -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card app-card border-0 shadow-sm text-center p-3">
+      <div class="eyebrow">Plataformas</div>
+      <strong class="fs-4">{{ platforms|length }}</strong>
+      <small class="text-muted">cadastradas</small>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card app-card border-0 shadow-sm text-center p-3">
+      <div class="eyebrow">Total de telas</div>
+      <strong class="fs-4">{{ platforms|sum(attribute='total_slots') }}</strong>
+      <small class="text-muted">disponíveis</small>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card app-card border-0 shadow-sm text-center p-3">
+      <div class="eyebrow">Ocupadas</div>
+      <strong class="fs-4 text-warning">{{ platforms|sum(attribute='used_slots') }}</strong>
+      <small class="text-muted">vinculadas</small>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card app-card border-0 shadow-sm text-center p-3">
+      <div class="eyebrow">Livres</div>
+      <strong class="fs-4 text-success">{{ platforms|sum(attribute='free_slots') }}</strong>
+      <small class="text-muted">disponíveis</small>
+    </div>
+  </div>
+</div>
+
+{% for platform in platforms %}
+<div class="card app-card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+      <div>
+        <div class="eyebrow">Plataforma</div>
+        <h2 class="h5 mb-0">{{ platform.name }}</h2>
+        {% if platform.url %}
+        <a href="{{ platform.url }}" target="_blank" class="small text-muted">{{ platform.url }}</a>
+        {% endif %}
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <span class="badge rounded-pill text-bg-success">{{ platform.free_slots }} livres</span>
+        <span class="badge rounded-pill text-bg-warning">{{ platform.used_slots }} ocupadas</span>
+        <span class="badge rounded-pill text-bg-secondary">{{ platform.total_slots }} total</span>
+        <form method="post" action="{{ url_for('main.platform_delete', platform_id=platform.id) }}" class="d-inline" onsubmit="return confirm('Remover plataforma e todas as contas?')">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-outline-danger">Remover</button>
+        </form>
+      </div>
+    </div>
+
+    {% if platform.notes %}
+    <p class="text-muted small mb-3">{{ platform.notes }}</p>
+    {% endif %}
+
+    {% if not platform.accounts %}
+    <div class="text-muted small text-center py-3">Nenhuma conta cadastrada. <a href="{{ url_for('main.account_create') }}">Adicionar conta</a></div>
+    {% endif %}
+
+    {% for account in platform.accounts %}
+    <div class="card border mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+          <div>
+            <div class="small text-muted mb-1">Conta {{ loop.index }}</div>
+            <div><strong>Login:</strong> <code>{{ account.login }}</code></div>
+            <div><strong>Senha:</strong> <code>{{ account.password }}</code></div>
+            {% if account.notes %}<div class="small text-muted mt-1">{{ account.notes }}</div>{% endif %}
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge rounded-pill text-bg-{{ 'danger' if account.is_full else 'success' }}">
+              {{ account.used_slots }}/{{ account.max_slots }} telas
+            </span>
+            <form method="post" action="{{ url_for('main.account_delete', account_id=account.id) }}" class="d-inline" onsubmit="return confirm('Remover esta conta?')">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger">Remover</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Telas -->
+        <div class="row g-2 mt-2">
+          {% for slot in account.slots|sort(attribute='slot_number') %}
+          <div class="col-md-6 col-lg-4">
+            <div class="card border-0 p-2 {{ 'bg-success bg-opacity-10' if slot.client else 'bg-light' }}">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <small class="fw-bold text-muted">Tela {{ slot.slot_number }}</small>
+                {% if slot.client %}
+                <span class="badge text-bg-success rounded-pill">Ocupada</span>
+                {% else %}
+                <span class="badge text-bg-secondary rounded-pill">Livre</span>
+                {% endif %}
+              </div>
+
+              {% if slot.client %}
+              <div class="small mb-2">
+                <a href="{{ url_for('main.client_detail', client_id=slot.client.id) }}" class="fw-bold">{{ slot.client.name }}</a>
+                {% if slot.notes %}<div class="text-muted">{{ slot.notes }}</div>{% endif %}
+              </div>
+              <form method="post" action="{{ url_for('main.slot_unlink', slot_id=slot.id) }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-warning w-100">Desvincular</button>
+              </form>
+              {% else %}
+              <form method="post" action="{{ url_for('main.slot_link', slot_id=slot.id) }}" class="d-flex flex-column gap-1">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <select name="client_id" class="form-select form-select-sm" required>
+                  <option value="">Selecionar cliente...</option>
+                  {% for client in clients %}
+                  <option value="{{ client.id }}">{{ client.name }}</option>
+                  {% endfor %}
+                </select>
+                <input type="text" name="notes" class="form-control form-control-sm" placeholder="Observacao (opcional)">
+                <button class="btn btn-sm btn-primary">Vincular</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="card app-card border-0 shadow-sm">
+  <div class="card-body text-center py-5 text-muted">
+    Nenhuma plataforma cadastrada. <a href="{{ url_for('main.platform_create') }}">Criar primeira plataforma</a>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

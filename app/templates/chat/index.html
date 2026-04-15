@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block title %}Chat interno · Atendimento Pro{% endblock %}
+{% block content %}
+<div class="row g-4">
+
+  <div class="col-12">
+    <div class="card app-card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="section-head mb-3">
+          <div>
+            <div class="eyebrow">Comunicacao interna</div>
+            <h1 class="h4 mb-1">Chat da equipe</h1>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('main.chat_hub', aba='geral') }}" class="btn btn-sm {{ 'btn-primary' if tab != 'privado' else 'btn-outline-secondary' }}">Chat geral</a>
+            <a href="{{ url_for('main.chat_hub', aba='privado', com=selected_employee.id if selected_employee else '') }}" class="btn btn-sm {{ 'btn-primary' if tab == 'privado' else 'btn-outline-secondary' }}">Privado</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if tab == 'privado' %}
+  <div class="col-md-4">
+    <div class="card app-card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="eyebrow mb-2">Funcionarios</div>
+        <div class="list-group list-group-flush">
+          {% for thread in private_threads %}
+          <a href="{{ url_for('main.chat_hub', aba='privado', com=thread.user.id) }}"
+             class="list-group-item list-group-item-action {{ 'active' if selected_employee and selected_employee.id == thread.user.id else '' }}">
+            <div class="d-flex justify-content-between">
+              <strong>{{ thread.user.name }}</strong>
+              {% if thread.count %}<span class="badge bg-secondary">{{ thread.count }}</span>{% endif %}
+            </div>
+            {% if thread.last_message %}
+            <small class="text-muted">{{ thread.last_message.body[:50] }}{% if thread.last_message.body|length > 50 %}…{% endif %}</small>
+            {% else %}
+            <small class="text-muted">Sem mensagens ainda</small>
+            {% endif %}
+          </a>
+          {% else %}
+          <div class="text-muted small p-2">Nenhum outro funcionario cadastrado.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card app-card border-0 shadow-sm">
+      <div class="card-body d-flex flex-column" style="min-height:480px">
+        <div class="section-head mb-3">
+          <div>
+            <div class="eyebrow">conversa privada</div>
+            <h2 class="h5 mb-0">{{ selected_employee.name if selected_employee else 'Selecione um funcionario' }}</h2>
+          </div>
+        </div>
+
+        {% if selected_employee %}
+        <div class="flex-grow-1 overflow-auto mb-3 d-flex flex-column gap-2" style="max-height:340px">
+          {% for message in private_messages %}
+          <div class="d-flex {{ 'justify-content-end' if message.sender_user_id == current_user.id else 'justify-content-start' }}">
+            <div class="p-2 rounded-3 {{ 'bg-primary text-white' if message.sender_user_id == current_user.id else 'bg-light' }}" style="max-width:75%">
+              <div class="small fw-bold mb-1">{{ message.sender.name }}</div>
+              <div>{{ message.body }}</div>
+              <div class="d-flex justify-content-between align-items-center mt-1 gap-2">
+                <small class="opacity-75">{{ message.created_at|datetime_br }}</small>
+                {% if current_user.is_admin or message.sender_user_id == current_user.id %}
+                <form method="post" action="{{ url_for('main.delete_direct_message', message_id=message.id) }}" class="d-inline">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-link btn-sm p-0 {{ 'text-white-50' if message.sender_user_id == current_user.id else 'text-muted' }}">remover</button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-muted text-center small py-4">Sem mensagens privadas ainda.</div>
+          {% endfor %}
+        </div>
+
+        <form method="post" action="{{ url_for('main.send_direct_message') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="recipient_id" value="{{ selected_employee.id }}">
+          <div class="input-group">
+            <textarea class="form-control" name="body" rows="2" placeholder="Mensagem privada para {{ selected_employee.name }}..."></textarea>
+            <button class="btn btn-primary" type="submit">Enviar</button>
+          </div>
+        </form>
+        {% else %}
+        <div class="text-muted text-center py-5">Selecione um funcionario para iniciar.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="col-lg-8">
+    <div class="card app-card border-0 shadow-sm">
+      <div class="card-body d-flex flex-column" style="min-height:480px">
+        <div class="section-head mb-3">
+          <div>
+            <div class="eyebrow">chat aberto</div>
+            <h2 class="h5 mb-0">Conversa geral da equipe</h2>
+          </div>
+        </div>
+
+        <div class="flex-grow-1 overflow-auto mb-3 d-flex flex-column gap-2" style="max-height:340px">
+          {% for message in general_messages %}
+          <div class="d-flex {{ 'justify-content-end' if message.author_user_id == current_user.id else 'justify-content-start' }}">
+            <div class="p-2 rounded-3 {{ 'bg-primary text-white' if message.author_user_id == current_user.id else 'bg-light' }}" style="max-width:75%">
+              <div class="small fw-bold mb-1">{{ message.author.name }}</div>
+              <div>{{ message.body }}</div>
+              <div class="d-flex justify-content-between align-items-center mt-1 gap-2">
+                <small class="opacity-75">{{ message.created_at|datetime_br }}</small>
+                {% if current_user.is_admin or message.author_user_id == current_user.id %}
+                <form method="post" action="{{ url_for('main.delete_team_message', message_id=message.id) }}" class="d-inline">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-link btn-sm p-0 {{ 'text-white-50' if message.author_user_id == current_user.id else 'text-muted' }}">remover</button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-muted text-center small py-4">Ainda nao ha mensagens no chat geral.</div>
+          {% endfor %}
+        </div>
+
+        <form method="post" action="{{ url_for('main.send_team_message') }}">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          <div class="input-group">
+            <textarea class="form-control" name="body" rows="2" placeholder="Escreva para a equipe..."></textarea>
+            <button class="btn btn-primary" type="submit">Enviar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card app-card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="eyebrow mb-2">Privado rapido</div>
+        <div class="list-group list-group-flush">
+          {% for thread in private_threads %}
+          <a href="{{ url_for('main.chat_hub', aba='privado', com=thread.user.id) }}" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between">
+              <strong>{{ thread.user.name }}</strong>
+              <small class="text-muted">{{ 'Administrador' if thread.user.is_admin else 'Funcionario' }}</small>
+            </div>
+            <small class="text-muted">Abrir conversa privada</small>
+          </a>
+          {% else %}
+          <div class="text-muted small p-2">Nenhum outro funcionario cadastrado.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
